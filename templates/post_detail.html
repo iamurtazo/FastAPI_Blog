@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ post.title }}
+{% endblock %}
+
+{% block content %}
+    <div class="back-link">
+        <a href="/">← Back to posts</a>
+    </div>
+    
+    <div class="blog-post">
+        <div class="post-meta">
+            By {{ post.author }} | Posted on {{ post.date_posted }}
+        </div>
+        <h2>{{ post.title }}</h2>
+        <p>{{ post.content }}</p>
+    </div>
+{% endblock %}

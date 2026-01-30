@@ -1,7 +1,12 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
 
 posts = [
     {
@@ -42,13 +47,43 @@ posts = [
 ]
 
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-@app.get("/posts", response_class=HTMLResponse, include_in_schema=False)
-def home():
-    return f"<h1>Welcome to the Blog Home Page</h1><p>There are {len(posts)} posts available.</p>"
+@app.get("/", include_in_schema=False)
+@app.get("/posts", include_in_schema=False)
+def home(request: Request):
+    # return templates.TemplateResponse("home.html", {"request": request, "posts": posts})
+    return templates.TemplateResponse(
+        request, 
+        'home.html', 
+        {
+            "request": request, 
+            "posts": posts
+        }
+    )
+# post detail api
+@app.get("/posts/{post_id}", include_in_schema=False)
+def get_post(request: Request, post_id: int): 
+    for post in posts:
+        if post["id"] == post_id:
+            return templates.TemplateResponse(
+                "post_detail.html",
+                {
+                    "request": request,
+                    "post": post
+                }
+            )
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_title": "Post Not Found",
+            "error_message": f"Sorry, the post with ID {post_id} does not exist.",
+            "home_link": "/posts"
+        }
+    )
 
-@app.get("/api/posts")
-def get_posts():
+
+@app.get("/posts")
+def get_posts(): 
     return {
         "posts": posts
     }
