@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from schemas import PostCreate, PostResponse
 
 app = FastAPI()
 
@@ -13,6 +14,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 templates = Jinja2Templates(directory="templates")
+
 
 posts = [
     {
@@ -66,6 +68,9 @@ def home(request: Request):
         }
     )
 
+@app.get("/api/posts", response_model=list[PostResponse])
+def get_posts_api():
+    return posts
 
 @app.exception_handler(404)
 def not_found_handler(request: Request, exc: HTTPException):
@@ -96,7 +101,7 @@ def validation_exception_handler(request: Request, exc: RequestValidationError):
 
 
 # post-detail endpoint
-@app.get("/posts/{post_id}")
+@app.get("/posts/{post_id}", response_model=PostResponse)
 def get_post(request: Request, post_id: int): 
     for post in posts:
         if post["id"] == post_id:
@@ -111,3 +116,16 @@ def get_post(request: Request, post_id: int):
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Sorry, the post with ID {post_id} does not exist."
     )
+
+@app.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
+def create_post(post: PostCreate):
+    new_id = max(p["id"] for p in posts) + 1 if posts else 1
+    new_post = {
+        "id": new_id,
+        "author": post.author,
+        "title": post.title,
+        "content": post.content,
+        "date_posted": "2026-01-31"  # In a real app, use the current date
+    }
+    posts.append(new_post)
+    return new_post
