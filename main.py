@@ -1,10 +1,16 @@
-from fastapi import FastAPI, Request
+from sys import exception
+from fastapi import FastAPI, Request, HTTPException , status
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 app = FastAPI()
 
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 templates = Jinja2Templates(directory="templates")
 
@@ -50,17 +56,47 @@ posts = [
 @app.get("/", include_in_schema=False)
 @app.get("/posts", include_in_schema=False)
 def home(request: Request):
-    # return templates.TemplateResponse("home.html", {"request": request, "posts": posts})
     return templates.TemplateResponse(
         request, 
         'home.html', 
         {
             "request": request, 
-            "posts": posts
+            "posts": posts,
+            "title": "Home Page"
         }
     )
-# post detail api
-@app.get("/posts/{post_id}", include_in_schema=False)
+
+
+@app.exception_handler(404)
+def not_found_handler(request: Request, exc: HTTPException):
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_title": "Page Not Found",
+            "error_message": exc.detail,
+            "home_link": "/posts",
+            "status_code": exc.status_code
+        },
+        status_code=404
+    )
+
+@app.exception_handler(RequestValidationError)
+def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return templates.TemplateResponse(
+        "error.html",
+        {
+            "request": request,
+            "error_title": "Invalid Request",
+            "error_message": "The page you're looking for doesn't exist or the URL is invalid.",
+            "home_link": "/posts"
+        },
+        status_code=422
+    )
+
+
+# post-detail endpoint
+@app.get("/posts/{post_id}")
 def get_post(request: Request, post_id: int): 
     for post in posts:
         if post["id"] == post_id:
@@ -71,19 +107,7 @@ def get_post(request: Request, post_id: int):
                     "post": post
                 }
             )
-    return templates.TemplateResponse(
-        "error.html",
-        {
-            "request": request,
-            "error_title": "Post Not Found",
-            "error_message": f"Sorry, the post with ID {post_id} does not exist.",
-            "home_link": "/posts"
-        }
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Sorry, the post with ID {post_id} does not exist."
     )
-
-
-@app.get("/posts")
-def get_posts(): 
-    return {
-        "posts": posts
-    }
