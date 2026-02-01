@@ -46,6 +46,12 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
 # EXCEPTION HANDLERS
 @app.exception_handler(404)
 def not_found_handler(request: Request, exc: HTTPException):
+    if request.url.path.startswith("/api"):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+
     return templates.TemplateResponse(
         "error.html",
         {
@@ -217,6 +223,71 @@ def get_post_detail_api(post_id: int, db: Annotated[Session, Depends(get_db)]):
             detail=f"Post with ID {post_id} not found."
         )
     return post
+
+
+@app.put("/api/posts/{post_id}", response_model=PostResponse)
+def update_post_detail_full_api(post_id: int, db: Annotated[Session, Depends(get_db)], post_data: PostCreate):
+    result = db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    post = result.scalars().first()
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with ID {post_id} not found."
+        )
+    
+    if post_data.user_id != post.user_id:
+        result = db.execute(
+            select(models.User).where(models.User.id == post_data.user_id)
+        )
+        user = result.scalars().first()
+        if not user: 
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="You do not have permission to update this post."
+            )
+        
+    post.title = post_data.title
+    post.content = post_data.content
+    post.user_id = post_data.user_id
+
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+@app.patch("/api/posts/{post_id}", response_model=PostResponse)
+def update_post_detail_partial_api(post_id: int, db: Annotated[Session, Depends(get_db)], post_data: PostUpdate):
+    result = db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    post = result.scalars().first()
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with ID {post_id} not found."
+        )
+    
+    update_date = post_data.model_dump(exclude_unset=True)
+    for key, value in update_date.items():
+        setattr(post, key, value)
+
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+@app.delete("/api/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post_detail_api(post_id: int, db: Annotated[Session, Depends(get_db)]):
+    result = db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    post = result.scalars().first() 
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with ID {post_id} not found."
+        )
+    db.delete(post)
+    db.commit() 
 
 
 @app.get("/posts/{post_id}", response_model=PostResponse, include_in_schema=False, name="post_detail")
