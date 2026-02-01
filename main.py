@@ -9,7 +9,14 @@ from typing import Annotated
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import models
-from schemas import *
+from schemas import (
+    UserCreate,
+    UserResponse,
+    UserUpdate,
+    PostCreate,
+    PostResponse,
+    PostUpdate
+)
 from database import Base, engine, get_db
 
 Base.metadata.create_all(bind=engine)
@@ -130,6 +137,15 @@ def get_user_api(user_id: int, db: Annotated[Session, Depends(get_db)]):
     return user
 
 
+@app.get("/api/users", response_model=list[UserResponse])
+def get_users_api(db: Annotated[Session, Depends(get_db)]):
+    result = db.execute(
+        select(models.User).order_by(models.User.id.asc())
+    )
+    users = result.scalars().all()
+    return users
+
+
 @app.get("/api/users/{user_id}/posts", response_model=list[PostResponse])
 def get_user_posts_api(user_id: int, db: Annotated[Session, Depends(get_db)]):
     result = db.execute(select(models.User).where(models.User.id == user_id))
@@ -174,6 +190,58 @@ def user_posts_page(request: Request, user_id: int, db: Annotated[Session, Depen
             "title": f"Posts by {user.username}"
         }
     )
+
+@app.patch("/api/users/{user_id}", response_model=UserResponse)
+def update_user_full_api(user_id: int, db: Annotated[Session, Depends(get_db)], user_update_data: UserUpdate):
+    result = db.execute(select(models.User).where(models.User.id == user_id)) 
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found."
+        )
+    
+    if user_update_data.username is not None and user_update_data.username != user.username:
+        result = db.execute(
+            select(models.User).where(models.User.username == user_update_data.username)
+        )
+        existing_user = result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User with that {user_update_data.username} already exists."
+            )
+    if user_update_data.email is not None and user_update_data.email != user.email:
+        result = db.execute(
+            select(models.User).where(models.User.email == user_update_data.email)
+        )
+        existing_user = result.scalars().first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User with that {user_update_data.email} already exists."
+            )
+    
+    if user_update_data.username is not None: user.username = user_update_data.username
+    if user_update_data.email is not None: user.email = user_update_data.email
+    if user_update_data.image_file is not None: user.image_file = user_update_data.image_file
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.delete("/api/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user_api(user_id:int, db: Annotated[Session, Depends(get_db)]):
+    result = db.execute(select(models.User).where(models.User.id == user_id))
+    user = result.scalars().first() 
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with ID {user_id} not found."
+        )
+    db.delete(user)
+    db.commit()
 
 
 
@@ -226,7 +294,7 @@ def get_post_detail_api(post_id: int, db: Annotated[Session, Depends(get_db)]):
 
 
 @app.put("/api/posts/{post_id}", response_model=PostResponse)
-def update_post_detail_full_api(post_id: int, db: Annotated[Session, Depends(get_db)], post_data: PostCreate):
+def update_post_detail_full_api(post_id: int, db: Annotated[Session, Depends(get_db)], post_data: PostUpdate):
     result = db.execute(select(models.Post).where(models.Post.id == post_id)) 
     post = result.scalars().first()
 
@@ -255,6 +323,39 @@ def update_post_detail_full_api(post_id: int, db: Annotated[Session, Depends(get
     db.refresh(post)
     return post
 
+# correct version according to gpt
+"""
+def update_post_detail_full_api(
+    post_id: int,
+    post_data: PostUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[models.User, Depends(get_current_user)],
+):
+    post = db.execute(
+        select(models.Post).where(models.Post.id == post_id)
+    ).scalars().first()
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with ID {post_id} not found."
+        )
+
+    if post.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this post."
+        )
+
+    update_data = post_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(post, field, value)
+
+    db.commit()
+    db.refresh(post)
+    return post
+
+"""
 
 @app.patch("/api/posts/{post_id}", response_model=PostResponse)
 def update_post_detail_partial_api(post_id: int, db: Annotated[Session, Depends(get_db)], post_data: PostUpdate):
@@ -267,8 +368,8 @@ def update_post_detail_partial_api(post_id: int, db: Annotated[Session, Depends(
             detail=f"Post with ID {post_id} not found."
         )
     
-    update_date = post_data.model_dump(exclude_unset=True)
-    for key, value in update_date.items():
+    update_data = post_data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
         setattr(post, key, value)
 
     db.commit()
