@@ -42,7 +42,7 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/posts", include_in_schema=False, name="posts")
 async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.Post).order_by(models.Post.options(selectinload(models.Post.author)).date_posted.desc())
+        select(models.Post).options(selectinload(models.Post.author)).order_by(models.Post.date_posted.desc())
     )
     posts = result.scalars().all()
     return templates.TemplateResponse(
@@ -126,8 +126,8 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
     )
 
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    await db.commit()
+    await db.refresh(new_user)
 
     return new_user
 
@@ -166,7 +166,7 @@ async def get_user_posts_api(user_id: int, db: Annotated[AsyncSession, Depends(g
         )
     
     results = await db.execute(
-        select(models.Post).where(models.Post.user_id == user_id)
+        select(models.Post).options(selectinload(models.Post.author)).where(models.Post.user_id == user_id)
     )
     posts = results.scalars().all()
     return posts
@@ -258,7 +258,7 @@ async def delete_user_api(user_id:int, db: Annotated[AsyncSession, Depends(get_d
 @app.get("/api/posts", response_model=list[PostResponse])
 async def get_posts_api(db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.Post).order_by(models.Post.date_posted.desc())
+        select(models.Post).options(selectinload(models.Post.author)).order_by(models.Post.date_posted.desc())
     )
     posts = result.scalars().all()
     return posts
@@ -291,7 +291,7 @@ async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_
 
 @app.get("/api/posts/{post_id}", response_model=PostResponse)
 async def get_post_detail_api(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)).where(models.Post.id == post_id)) 
     post = result.scalars().first()
 
     if not post:
