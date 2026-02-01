@@ -1,6 +1,22 @@
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from typing import List, Optional
 
+
+class UserBase(BaseModel):
+    username: str = Field(min_length=1, max_length=50)
+    email: EmailStr = Field(max_length=120)
+    # image_file: Optional[str] = None
+
+class UserCreate(UserBase):
+    pass
+
+class UserResponse(UserBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    image_file: str | None
+    image_path: str
 
 class PostBase(BaseModel):
     title: str = Field(min_length=1, max_length=100)
@@ -8,11 +24,13 @@ class PostBase(BaseModel):
     author: str = Field(min_length=1, max_length=50)
 
 class PostCreate(PostBase):
-    pass
+    user_id: int
     
 class PostResponse(PostBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    date_posted: str
-    
+    user_id: int
+    date_posted: datetime
+    author: UserResponse
+
