@@ -16,7 +16,9 @@ router = APIRouter(
 @router.get("", response_model=list[PostResponse])
 async def get_posts_api(db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.Post).options(selectinload(models.Post.author)).order_by(models.Post.date_posted.desc())
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .order_by(models.Post.date_posted.desc())
     )
     posts = result.scalars().all()
     return posts
@@ -25,7 +27,8 @@ async def get_posts_api(db: Annotated[AsyncSession, Depends(get_db)]):
 @router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.User).where(models.User.id == post.user_id)
+        select(models.User)
+        .where(models.User.id == post.user_id)
     )
     user = result.scalars().first()
 
@@ -49,7 +52,11 @@ async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_
 
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post_detail_api(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)).where(models.Post.id == post_id)) 
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .where(models.Post.id == post_id)
+    ) 
     post = result.scalars().first()
 
     if not post:
@@ -62,7 +69,10 @@ async def get_post_detail_api(post_id: int, db: Annotated[AsyncSession, Depends(
 
 @router.put("/{post_id}", response_model=PostResponse)
 async def update_post_detail_full_api(post_id: int, db: Annotated[AsyncSession, Depends(get_db)], post_data: PostUpdate):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    result = await db.execute(
+        select(models.Post)
+        .where(models.Post.id == post_id)
+    ) 
     post = result.scalars().first()
 
     if not post:
@@ -73,7 +83,8 @@ async def update_post_detail_full_api(post_id: int, db: Annotated[AsyncSession, 
     
     if post_data.user_id != post.user_id:
         result = await db.execute(
-            select(models.User).where(models.User.id == post_data.user_id)
+            select(models.User)
+            .where(models.User.id == post_data.user_id)
         )
         user = result.scalars().first()
         if not user: 
@@ -93,7 +104,10 @@ async def update_post_detail_full_api(post_id: int, db: Annotated[AsyncSession, 
 
 @router.patch("/{post_id}", response_model=PostResponse)
 async def update_post_detail_partial_api(post_id: int, db: Annotated[AsyncSession, Depends(get_db)], post_data: PostUpdate):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    result = await db.execute(
+        select(models.Post)
+        .where(models.Post.id == post_id)
+    ) 
     post = result.scalars().first()
 
     if not post:
@@ -113,7 +127,10 @@ async def update_post_detail_partial_api(post_id: int, db: Annotated[AsyncSessio
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post_detail_api(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id)) 
+    result = await db.execute(
+        select(models.Post)
+        .where(models.Post.id == post_id)
+    )
     post = result.scalars().first() 
 
     if not post:
