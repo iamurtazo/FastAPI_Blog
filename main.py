@@ -59,12 +59,9 @@ async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
 
 # EXCEPTION HANDLERS
 @app.exception_handler(404)
-def not_found_handler(request: Request, exc: HTTPException):
+async def not_found_handler(request: Request, exc: HTTPException):
     if request.url.path.startswith("/api"):
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.detail}
-        )
+        return await http_exception_handler(request, exc)
 
     return templates.TemplateResponse(
         "error.html",
@@ -79,7 +76,7 @@ def not_found_handler(request: Request, exc: HTTPException):
     )
 
 @app.exception_handler(RequestValidationError)
-def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return templates.TemplateResponse(
         "error.html",
         {
@@ -285,7 +282,7 @@ async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_
 
     db.add(new_post)
     await db.commit()
-    await db.refresh(new_post)
+    await db.refresh(new_post, attribute_names=["author"])
     return new_post
 
 
@@ -329,18 +326,18 @@ async def update_post_detail_full_api(post_id: int, db: Annotated[AsyncSession, 
     post.user_id = post_data.user_id
 
     await db.commit()
-    await db.refresh(post)
+    await db.refresh(post, attribute_names=["author"])
     return post
 
 # correct version according to gpt
 """
-def update_post_detail_full_api(
+async def update_post_detail_full_api(
     post_id: int,
     post_data: PostUpdate,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[models.User, Depends(get_current_user)],
 ):
-    post = db.execute(
+    post = await db.execute(
         select(models.Post).where(models.Post.id == post_id)
     ).scalars().first()
 
@@ -360,8 +357,8 @@ def update_post_detail_full_api(
     for field, value in update_data.items():
         setattr(post, field, value)
 
-    db.commit()
-    db.refresh(post)
+    await db.commit()
+    await db.refresh(post, attribute_names=["author"])
     return post
 
 """
@@ -419,4 +416,3 @@ async def post_detail(request: Request, post_id: int, db: Annotated[AsyncSession
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Sorry, the post with ID {post_id} does not exist."
     )
-
