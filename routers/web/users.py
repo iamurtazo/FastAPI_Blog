@@ -14,7 +14,9 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/users/{user_id}/posts", include_in_schema=False, name="user_posts")
 async def user_posts_page(request: Request, user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id))
     user=result.scalars().first()
 
     if not user:
