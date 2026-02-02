@@ -16,7 +16,8 @@ router = APIRouter(
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED) 
 async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.User).where(models.User.username == user.username)
+        select(models.User)
+        .where(models.User.username == user.username)
     )
 
     existing_user = result.scalars().first()
@@ -28,7 +29,8 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
         )
     
     result = await db.execute(
-        select(models.User).where(models.User.email == user.email)
+        select(models.User)
+        .where(models.User.email == user.email)
     )
 
     existing_email = result.scalars().first()
@@ -66,7 +68,8 @@ async def get_user_api(user_id: int, db: Annotated[AsyncSession, Depends(get_db)
 @router.get("", response_model=list[UserResponse])
 async def get_users_api(db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.User).order_by(models.User.id.asc())
+        select(models.User)
+        .order_by(models.User.id.asc())
     )
     users = result.scalars().all()
     return users
@@ -74,7 +77,9 @@ async def get_users_api(db: Annotated[AsyncSession, Depends(get_db)]):
 
 @router.get("/{user_id}/posts", response_model=list[PostResponse])
 async def get_user_posts_api(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id))
     user=result.scalars().first()
 
 
@@ -92,7 +97,9 @@ async def get_user_posts_api(user_id: int, db: Annotated[AsyncSession, Depends(g
 
 @router.patch("/{user_id}", response_model=UserResponse)
 async def update_user_full_api(user_id: int, db: Annotated[AsyncSession, Depends(get_db)], user_update_data: UserUpdate):
-    result = await db.execute(select(models.User).where(models.User.id == user_id)) 
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id)) 
     user = result.scalars().first()
     if not user:
         raise HTTPException(
@@ -102,7 +109,8 @@ async def update_user_full_api(user_id: int, db: Annotated[AsyncSession, Depends
     
     if user_update_data.username is not None and user_update_data.username != user.username:
         result = await db.execute(
-            select(models.User).where(models.User.username == user_update_data.username)
+            select(models.User)
+            .where(models.User.username == user_update_data.username)
         )
         existing_user = result.scalars().first()
         if existing_user:
@@ -112,7 +120,8 @@ async def update_user_full_api(user_id: int, db: Annotated[AsyncSession, Depends
             )
     if user_update_data.email is not None and user_update_data.email != user.email:
         result = await db.execute(
-            select(models.User).where(models.User.email == user_update_data.email)
+            select(models.User)
+            .where(models.User.email == user_update_data.email)
         )
         existing_user = result.scalars().first()
         if existing_user:
@@ -131,7 +140,10 @@ async def update_user_full_api(user_id: int, db: Annotated[AsyncSession, Depends
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_api(user_id:int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id)
+    )
     user = result.scalars().first() 
 
     if not user:
