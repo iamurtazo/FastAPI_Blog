@@ -37,10 +37,11 @@ app.include_router(api_posts.router)
 app.include_router(web_users.router)
 app.include_router(web_posts.router)
 
-
+# Mount static and media directories
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory="media"), name="media")
 
+# Templates setup
 templates = Jinja2Templates(directory="templates")
 
 
