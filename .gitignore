@@ -13,3 +13,6 @@ wheels/
 blog.db
 instance/
 *.sqlite3
+
+# github 
+.github/
