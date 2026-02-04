@@ -16,3 +16,10 @@ instance/
 
 # github 
 .github/
+
+snippets.txt
+
+# VS Code
+.vscode/
+
+.env
