@@ -292,7 +292,7 @@
       const formData = new FormData(createForm);
       const postData = Object.fromEntries(formData.entries());
 
-      // TEMPORARY - hardcoded until authorization (Tutorial 11)
+      // TEMPORARY - hardcoded until authorization
       postData.user_id = 1;
 
       try {
@@ -343,5 +343,7 @@
       }
     });
   </script>
+  {% block scripts %}
+  {% endblock %}
   </body>
 </html>

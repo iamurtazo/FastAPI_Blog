@@ -121,7 +121,7 @@ async def update_post_detail_partial_api(post_id: int, db: Annotated[AsyncSessio
         setattr(post, key, value)
 
     await db.commit()
-    await db.refresh(post)
+    await db.refresh(post, attribute_names=["author"])
     return post
 
 
