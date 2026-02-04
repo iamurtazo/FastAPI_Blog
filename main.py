@@ -16,7 +16,8 @@ from routers.api import (
 )
 from routers.web import (
     users as web_users, 
-    posts as web_posts
+    posts as web_posts,
+    auth as web_auth
 )
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.include_router(api_posts.router)
 # Include Web routers
 app.include_router(web_users.router)
 app.include_router(web_posts.router)
+app.include_router(web_auth.router)
 
 # Mount static and media directories
 app.mount("/static", StaticFiles(directory="static"), name="static")
