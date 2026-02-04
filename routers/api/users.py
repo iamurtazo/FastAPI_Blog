@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 import models
-from auth import (
+from core.security import (
     hash_password, 
     verify_password, 
     create_access_token, 
