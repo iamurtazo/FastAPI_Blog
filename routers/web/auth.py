@@ -9,7 +9,7 @@ router = APIRouter(
 templates = Jinja2Templates(directory="templates")
 
 
-@router.get("/login", name="login")
+@router.get("/login", include_in_schema=False, name="login")
 async def login_page(request: Request):
     """Display login page"""
     return templates.TemplateResponse(
@@ -19,7 +19,7 @@ async def login_page(request: Request):
     )
 
 
-@router.get("/register", name="register")
+@router.get("/register", include_in_schema=False, name="register")
 async def register_page(request: Request):
     """Display registration page"""
     return templates.TemplateResponse(
