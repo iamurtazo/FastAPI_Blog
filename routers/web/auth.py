@@ -27,3 +27,12 @@ async def register_page(request: Request):
         "register.html",
         {"title": "Register"},
     )
+
+@router.get("/account", include_in_schema=False, name="account")
+async def account_page(request: Request):
+    """Display account page"""
+    return templates.TemplateResponse(
+        request,
+        "account.html",
+        {"title": "Account"},
+    )
