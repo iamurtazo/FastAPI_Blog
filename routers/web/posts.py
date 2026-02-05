@@ -37,3 +37,12 @@ async def post_detail(request: Request, post_id: int, db: Annotated[AsyncSession
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Sorry, the post with ID {post_id} does not exist."
     )
+
+@router.post("", include_in_schema=False, name="create_post")
+async def create_post_page(request: Request):
+    return templates.TemplateResponse(
+        "create_post.html",
+        {
+            "request": request
+        }
+    )
