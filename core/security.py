@@ -4,6 +4,14 @@ from pwdlib import PasswordHash
 from datetime import UTC, datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
 
+from typing import Annotated
+from fastapi import Depends, HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+import models
+from config import settings
+from database import get_db
+
 password_hash = PasswordHash.recommended()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/token")
 
@@ -46,4 +54,40 @@ def verify_access_token(token: str) -> str | None:
         if user_id is None:
             return None
         return user_id
+    
+async def get_current_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> models.User:
+    """Get the current user based on the provided JWT token."""
+    user_id = verify_access_token(token)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    result = await db.execute(
+        select(models.User)
+        .where(models.User.id == user_id_int)
+    )
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
 
+CurrentUser = Annotated[models.User, Depends(get_current_user)]
