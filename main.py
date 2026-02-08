@@ -1,24 +1,22 @@
+# Standard library imports
 from contextlib import asynccontextmanager
+from typing import Annotated
+
+# Third-party imports
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import http_exception_handler
-from typing import Annotated
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
+# Local application imports
 import models
 from database import Base, engine, get_db
-from routers.api import (
-    users as api_users, 
-    posts as api_posts
-)
-from routers.web import (
-    users as web_users, 
-    posts as web_posts,
-    auth as web_auth
-)
+from routers.api import users as api_users, posts as api_posts
+from routers.web import users as web_users, posts as web_posts, auth as web_auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
