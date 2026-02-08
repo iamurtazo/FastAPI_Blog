@@ -32,8 +32,10 @@ router = APIRouter(
     tags=["Users"]
 )
 
+DB =  Annotated[AsyncSession, Depends(get_db)]
+
 @router.post("", response_model=UserPrivate, status_code=status.HTTP_201_CREATED) 
-async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def create_user(user: UserCreate, db: DB):
     result = await db.execute(
         select(models.User)
         .where(func.lower(models.User.username) == user.username.lower())
@@ -74,7 +76,7 @@ async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()], 
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: DB
 ):
     result = await db.execute(
         select(models.User)
@@ -102,7 +104,7 @@ async def get_current_user(current_user: CurrentUser):
 
 
 @router.get("/{user_id}", response_model=UserPublic)
-async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_user(user_id: int, db: DB):
     result = await db.execute(
         select(models.User)
         .where(models.User.id == user_id)
@@ -117,7 +119,7 @@ async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.get("", response_model=list[UserPublic])
-async def get_users(db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_users(db: DB):
     result = await db.execute(
         select(models.User)
         .order_by(models.User.id.asc())
@@ -127,7 +129,7 @@ async def get_users(db: Annotated[AsyncSession, Depends(get_db)]):
 
 
 @router.get("/{user_id}/posts", response_model=list[PostResponse])
-async def get_user_posts(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+async def get_user_posts(user_id: int, db: DB):
     result = await db.execute(
         select(models.User)
         .where(models.User.id == user_id)
@@ -154,7 +156,7 @@ async def update_user(
     user_id: int, 
     current_user: CurrentUser,
     user_update_data: UserUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: DB,
 ): 
     if current_user.id != user_id:
         raise HTTPException(
@@ -177,7 +179,7 @@ async def update_user(
     if user_update_data.username is not None and user_update_data.username.lower() != user.username.lower():
         result = await db.execute(
             select(models.User)
-            .where(models.User.username.lower() == user_update_data.username.lower())
+            .where(func.lower(models.User.username) == user_update_data.username.lower())
         )
         existing_user = result.scalars().first()
         if existing_user:
@@ -209,7 +211,7 @@ async def update_user(
 async def delete_user(
     user_id:int, 
     current_user: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)]
+    db: DB
 ):
     if user.id != current_user.id:
         raise HTTPException(
